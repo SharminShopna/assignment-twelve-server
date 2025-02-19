@@ -172,29 +172,27 @@ async function run() {
     app.get('/all-properties', async (req, res) => {
       try {
         const { location, sort } = req.query;
-
         const query = {};
-        // Case-insensitive search by location
+    
         if (location) {
           query.location = { $regex: location, $options: 'i' };
         }
-        // Sort by minPrice (ascending order)
+    
         let sortOption = {};
-        if (sort === 'true') {
+        if (sort === 'asc') {
           sortOption = { minPrice: 1 }; 
+        } else if (sort === 'desc') {
+          sortOption = { minPrice: -1 }; 
         }
-
-        const result = await propertyCollection
-          .find(query)
-          .sort(sortOption)
-          .toArray();
-
+    
+        const result = await propertyCollection.find(query).sort(sortOption).toArray();
         res.send(result);
       } catch (error) {
         console.error('Error fetching properties:', error);
         res.status(500).send({ message: 'Failed to fetch properties' });
       }
     });
+    
 
 
 
