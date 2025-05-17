@@ -849,6 +849,52 @@ async function run() {
     })
 
 
+    //firebase delete, admin
+
+    app.post("/deleteUser", async (req, res) => {
+      const { email } = req.body;
+      console.log("Received email for deletion:", email);
+    
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+    
+      try {
+        console.log("Fetching user from Firebase Authentication...");
+        const userRecord = await admin.auth().getUserByEmail(email);
+        const uid = userRecord.uid;
+        console.log("User UID found:", uid);
+    
+        console.log("Deleting user from MongoDB...");
+        const deleteUser = await usersCollection.deleteOne({ email: email });
+        console.log("Delete result from MongoDB:", deleteUser);
+    
+        if (deleteUser.deletedCount === 0) {
+          return res.status(404).json({ error: `User with email ${email} not found in the database.` });
+        }
+    
+        console.log("Deleting user from Firebase Authentication...");
+        await admin.auth().deleteUser(uid);
+        console.log("User deleted from Firebase Authentication.");
+    
+        console.log("Deleting user from Firestore...");
+        const userRef = admin.firestore().collection("users").doc(uid);
+        const doc = await userRef.get();
+        if (doc.exists) {
+          await userRef.delete();
+          console.log("User deleted from Firestore.");
+        } else {
+          console.log("No user found in Firestore for UID:", uid);
+        }
+    
+        return res.status(200).json({
+          message: `User with email ${email} deleted successfully.`,
+        });
+      } catch (error) {
+        console.error("Error deleting user:", error.message, error.stack);
+        return res.status(500).json({ error: "Failed to delete user.", details: error.message });
+      }
+    });
 
 
 
